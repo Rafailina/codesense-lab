@@ -5,6 +5,26 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>CodeSense Lab v3</title>
 <script src="https://cdn.jsdelivr.net/pyodide/v0.23.4/full/pyodide.js"></script>
+<script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/11.8.1/firebase-app.js";
+  import { getFirestore, collection, addDoc } from "https://www.gstatic.com/firebasejs/11.8.1/firebase-firestore.js";
+  const firebaseConfig = {
+    apiKey: "AIzaSyDp28YUPPLExpHnDo7Qt3Oi43V1eQbLVzQ",
+    authDomain: "codesense-lab.firebaseapp.com",
+    projectId: "codesense-lab",
+    storageBucket: "codesense-lab.firebasestorage.app",
+    messagingSenderId: "46638167860",
+    appId: "1:46638167860:web:c5e61ac5379673bf135761"
+  };
+  const app = initializeApp(firebaseConfig);
+  const db = getFirestore(app);
+  window.saveToFirebase = async function(data) {
+    try {
+      await addDoc(collection(db, "student_responses"), data);
+      return true;
+    } catch(e) { console.error("Firebase error:", e); return false; }
+  };
+</script>
 <style>
 * { box-sizing: border-box; margin: 0; padding: 0; }
 body { font-family: 'Segoe UI', sans-serif; background: #f0f0f6; color: #1a1a1a; }
@@ -629,12 +649,13 @@ function selectStar(n) {
 }
 
 // ── Save ──
-function saveReflection() {
+async function saveReflection() {
   const text = document.getElementById('metaAnswer').value.trim();
   if (!text) { alert('Γράψε κάτι πριν συνεχίσεις!'); return; }
   const log = {
     timestamp: new Date().toISOString(),
     exercise: 'sum_1_to_N',
+    studentId: 'student_' + Math.random().toString(36).substr(2, 6),
     prediction: analytics.prediction,
     predictionCorrect: analytics.prediction === '55',
     attempts: analytics.attempts,
@@ -645,8 +666,32 @@ function saveReflection() {
     reflection: text,
     code: buildCode()
   };
-  console.log('=== CodeSense Lab Analytics ===\n', JSON.stringify(log, null, 2));
-  alert('✅ Καταγράφηκε!\n\nΤα δεδομένα αποστέλλονται στη βάση (Firebase).');
+
+  const btn = document.querySelector('.save-btn');
+  btn.textContent = 'Αποθήκευση...';
+  btn.disabled = true;
+
+  try {
+    if (window.saveToFirebase) {
+      const ok = await window.saveToFirebase(log);
+      if (ok) {
+        btn.textContent = '✅ Αποθηκεύτηκε!';
+        btn.style.background = '#15803d';
+        setTimeout(() => { alert('✅ Οι απαντήσεις σου αποθηκεύτηκαν στη βάση δεδομένων!\n\nΣε ευχαριστούμε για τη συμμετοχή σου.'); }, 200);
+      } else {
+        btn.textContent = '❌ Σφάλμα — δοκίμασε ξανά';
+        btn.disabled = false;
+      }
+    } else {
+      // Fallback αν Firebase δεν φορτώσει
+      console.log('Analytics:', JSON.stringify(log, null, 2));
+      btn.textContent = '✅ Αποθηκεύτηκε!';
+    }
+  } catch(e) {
+    console.error(e);
+    btn.textContent = '❌ Σφάλμα';
+    btn.disabled = false;
+  }
 }
 
 document.getElementById('runBtn').addEventListener('click', runCode);
