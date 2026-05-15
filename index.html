@@ -1,701 +1,1411 @@
 <!DOCTYPE html>
 <html lang="el">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>CodeSense Lab v3</title>
-<script src="https://cdn.jsdelivr.net/pyodide/v0.23.4/full/pyodide.js"></script>
-<script type="module">
-  import { initializeApp } from "https://www.gstatic.com/firebasejs/11.8.1/firebase-app.js";
-  import { getFirestore, collection, addDoc } from "https://www.gstatic.com/firebasejs/11.8.1/firebase-firestore.js";
-  const firebaseConfig = {
-    apiKey: "AIzaSyDp28YUPPLExpHnDo7Qt3Oi43V1eQbLVzQ",
-    authDomain: "codesense-lab.firebaseapp.com",
-    projectId: "codesense-lab",
-    storageBucket: "codesense-lab.firebasestorage.app",
-    messagingSenderId: "46638167860",
-    appId: "1:46638167860:web:c5e61ac5379673bf135761"
-  };
-  const app = initializeApp(firebaseConfig);
-  const db = getFirestore(app);
-  window.saveToFirebase = async function(data) {
-    try {
-      await addDoc(collection(db, "student_responses"), data);
-      return true;
-    } catch(e) { console.error("Firebase error:", e); return false; }
-  };
-</script>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0"/>
+<title>CodeSense Lab</title>
 <style>
-* { box-sizing: border-box; margin: 0; padding: 0; }
-body { font-family: 'Segoe UI', sans-serif; background: #f0f0f6; color: #1a1a1a; }
+  @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600;700&family=Nunito:wght@400;600;700;800;900&display=swap');
 
-header {
-  background: #2d2d6b; color: white;
-  padding: 12px 24px; display: flex; align-items: center; gap: 16px;
-}
-header h1 { font-size: 18px; font-weight: 700; }
-header .version { font-size: 12px; opacity: 0.6; }
+  :root {
+    --bg: #0f1117;
+    --surface: #1a1d2e;
+    --surface2: #252840;
+    --border: #2e3158;
+    --accent: #6c63ff;
+    --accent2: #00d4aa;
+    --accent3: #ff6b6b;
+    --accent4: #ffd166;
+    --text: #e8eaf6;
+    --text2: #9b9fc4;
+    --mono: 'JetBrains Mono', monospace;
+    --sans: 'Nunito', sans-serif;
+    --radius: 16px;
+    --radius-sm: 10px;
+  }
 
-.phase-bar {
-  background: white; border-bottom: 1px solid #e5e7eb;
-  padding: 10px 24px; display: flex; gap: 0; align-items: center;
-}
-.phase-step {
-  display: flex; align-items: center; gap: 8px;
-  font-size: 12px; color: #9ca3af; padding: 4px 14px 4px 0;
-}
-.phase-step.active { color: #4338ca; font-weight: 600; }
-.phase-step.done { color: #16a34a; }
-.phase-step .dot {
-  width: 22px; height: 22px; border-radius: 50%;
-  border: 2px solid #e5e7eb;
-  display: flex; align-items: center; justify-content: center;
-  font-size: 10px; font-weight: 700; flex-shrink: 0;
-}
-.phase-step.active .dot { border-color: #4338ca; background: #eef2ff; color: #4338ca; }
-.phase-step.done .dot { border-color: #16a34a; background: #f0fdf4; color: #16a34a; }
-.phase-arrow { color: #d1d5db; font-size: 14px; padding-right: 14px; }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
 
-.layout {
-  display: grid;
-  grid-template-columns: 1fr 420px;
-  height: calc(100vh - 96px);
-}
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--sans);
+    min-height: 100vh;
+    font-size: 15px;
+    line-height: 1.6;
+  }
 
-/* ── Αριστερά ── */
-.left-panel {
-  display: flex; flex-direction: column;
-  border-right: 1px solid #ddd; background: white; overflow-y: auto;
-}
+  /* ── SCREENS ── */
+  .screen { display: none; min-height: 100vh; }
+  .screen.active { display: flex; flex-direction: column; }
 
-.problem-box {
-  background: #eef2ff; border-bottom: 1px solid #c7d2fe; padding: 14px 20px;
-  flex-shrink: 0;
-}
-.problem-box .tag {
-  font-size: 10px; font-weight: 700; text-transform: uppercase;
-  letter-spacing: 0.1em; color: #4338ca; margin-bottom: 6px;
-}
-.problem-box h2 { font-size: 15px; font-weight: 600; color: #1e1b4b; margin-bottom: 6px; }
-.problem-box p { font-size: 13px; color: #374151; line-height: 1.6; }
+  /* ── HEADER ── */
+  .app-header {
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+    padding: 14px 16px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    position: sticky; top: 0; z-index: 100;
+  }
+  .app-header .logo { font-size: 18px; font-weight: 900; color: var(--accent); font-family: var(--mono); }
+  .app-header .logo span { color: var(--accent2); }
+  .app-header .student-badge {
+    margin-left: auto;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 20px;
+    padding: 4px 12px;
+    font-size: 12px;
+    color: var(--text2);
+    font-weight: 600;
+  }
 
-.prediction-box {
-  background: #faf5ff; border-bottom: 1px solid #e9d5ff;
-  padding: 12px 20px; flex-shrink: 0;
-}
-.prediction-box .tag {
-  font-size: 10px; font-weight: 700; text-transform: uppercase;
-  letter-spacing: 0.1em; color: #7c3aed; margin-bottom: 6px;
-}
-.prediction-box p { font-size: 13px; color: #4c1d95; margin-bottom: 8px; }
-.prediction-box input {
-  border: 1px solid #d8b4fe; border-radius: 6px; padding: 6px 10px;
-  font-size: 13px; width: 100px; margin-right: 8px; background: white;
-}
-.prediction-box button {
-  background: #7c3aed; color: white; border: none; border-radius: 6px;
-  padding: 6px 14px; font-size: 13px; font-weight: 600; cursor: pointer;
-}
-.prediction-box button:hover { background: #6d28d9; }
-.prediction-box.locked { opacity: 0.5; pointer-events: none; }
+  /* ── STEP INDICATOR ── */
+  .step-bar {
+    background: var(--surface);
+    padding: 12px 16px;
+    display: flex;
+    gap: 6px;
+    overflow-x: auto;
+  }
+  .step-dot {
+    flex: 1; min-width: 36px;
+    height: 6px;
+    border-radius: 3px;
+    background: var(--border);
+    transition: background .3s;
+  }
+  .step-dot.done { background: var(--accent2); }
+  .step-dot.active { background: var(--accent); }
 
-/* ── Visual Block Editor ── */
-.editor-area {
-  flex: 1; padding: 20px; background: #f8f8fc;
-  display: flex; flex-direction: column; gap: 12px;
-}
-.editor-title {
-  font-size: 11px; font-weight: 700; text-transform: uppercase;
-  letter-spacing: 0.1em; color: #6b7280; margin-bottom: 4px;
-}
+  /* ── CONTENT WRAP ── */
+  .content { padding: 20px 16px; flex: 1; max-width: 480px; margin: 0 auto; width: 100%; }
 
-/* Blocks */
-.block {
-  border-radius: 8px; padding: 10px 14px;
-  display: flex; align-items: center; gap: 8px;
-  flex-wrap: wrap; font-size: 14px; font-weight: 600;
-  color: white; box-shadow: 0 2px 6px rgba(0,0,0,0.15);
-  position: relative; user-select: none;
-}
-.block.var-block { background: #9333ea; border-radius: 8px 8px 0 8px; }
-.block.loop-block { background: #2563eb; min-height: 80px; align-items: flex-start; flex-direction: column; padding: 0; }
-.block.loop-header { background: #2563eb; padding: 10px 14px; border-radius: 8px 8px 0 0; width: 100%; display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
-.block.loop-body { background: #3b82f6; margin: 0 0 0 20px; padding: 8px 12px; min-height: 48px; border-radius: 0 0 8px 8px; width: calc(100% - 20px); display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
-.block.print-block { background: #d97706; border-radius: 8px; }
+  /* ── CARDS ── */
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 20px;
+    margin-bottom: 16px;
+  }
+  .card-title {
+    font-size: 13px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: .1em;
+    color: var(--accent);
+    margin-bottom: 8px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
 
-.block-input {
-  background: rgba(255,255,255,0.9);
-  border: none; border-radius: 4px;
-  padding: 3px 8px; font-size: 13px; font-weight: 700;
-  color: #1e1b4b; width: 52px; text-align: center;
-  outline: none;
-}
-.block-input:focus { background: white; box-shadow: 0 0 0 2px rgba(255,255,255,0.8); }
-.block-input.wide { width: 90px; }
+  /* ── FORM ── */
+  .field { margin-bottom: 18px; }
+  .field label {
+    display: block;
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--text2);
+    margin-bottom: 6px;
+    text-transform: uppercase;
+    letter-spacing: .06em;
+  }
+  .field input, .field select {
+    width: 100%;
+    background: var(--surface2);
+    border: 1.5px solid var(--border);
+    border-radius: var(--radius-sm);
+    padding: 12px 14px;
+    color: var(--text);
+    font-family: var(--sans);
+    font-size: 15px;
+    font-weight: 600;
+    outline: none;
+    transition: border-color .2s;
+    appearance: none;
+  }
+  .field input:focus, .field select:focus { border-color: var(--accent); }
+  .field select { cursor: pointer; }
 
-.block-select {
-  background: rgba(255,255,255,0.9);
-  border: none; border-radius: 4px;
-  padding: 3px 6px; font-size: 13px; font-weight: 700;
-  color: #1e1b4b; outline: none; cursor: pointer;
-}
+  .gender-row { display: flex; gap: 10px; }
+  .gender-btn {
+    flex: 1;
+    background: var(--surface2);
+    border: 2px solid var(--border);
+    border-radius: var(--radius-sm);
+    padding: 12px 8px;
+    color: var(--text2);
+    font-family: var(--sans);
+    font-size: 14px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all .2s;
+    text-align: center;
+  }
+  .gender-btn.selected { border-color: var(--accent); color: var(--accent); background: rgba(108,99,255,.12); }
+  .gender-btn:active { transform: scale(.97); }
 
-.notch {
-  width: 20px; height: 10px; background: #1e1b4b;
-  border-radius: 0 0 6px 6px; margin: 0 auto;
-  opacity: 0.2;
-}
+  /* ── BUTTONS ── */
+  .btn {
+    display: block;
+    width: 100%;
+    padding: 14px;
+    border-radius: var(--radius-sm);
+    font-family: var(--sans);
+    font-size: 15px;
+    font-weight: 800;
+    cursor: pointer;
+    border: none;
+    transition: all .2s;
+    text-align: center;
+  }
+  .btn-primary { background: var(--accent); color: #fff; }
+  .btn-primary:active { transform: scale(.97); background: #5a52e0; }
+  .btn-secondary { background: var(--surface2); color: var(--text); border: 1.5px solid var(--border); }
+  .btn-success { background: var(--accent2); color: #0f1117; }
+  .btn-success:active { transform: scale(.97); }
+  .btn:disabled { opacity: .4; cursor: not-allowed; transform: none !important; }
 
-/* ── Δεξιά ── */
-.right-panel {
-  display: flex; flex-direction: column;
-  overflow-y: auto; background: #fafafa;
-}
+  /* ── HERO ── */
+  .hero {
+    text-align: center;
+    padding: 40px 20px 30px;
+  }
+  .hero-icon { font-size: 56px; margin-bottom: 12px; display: block; }
+  .hero h1 { font-size: 26px; font-weight: 900; margin-bottom: 8px; }
+  .hero h1 span { color: var(--accent); }
+  .hero p { color: var(--text2); font-size: 14px; line-height: 1.7; }
 
-.section-label {
-  font-size: 10px; font-weight: 700; text-transform: uppercase;
-  letter-spacing: 0.1em; color: #6b7280;
-  padding: 8px 16px 6px; border-bottom: 1px solid #e5e7eb;
-  background: white; flex-shrink: 0;
-}
+  /* ── QUIZ ── */
+  .quiz-q { font-size: 15px; font-weight: 700; margin-bottom: 14px; line-height: 1.5; }
+  .quiz-counter { font-size: 12px; color: var(--text2); margin-bottom: 6px; }
+  .option-btn {
+    width: 100%;
+    text-align: left;
+    background: var(--surface2);
+    border: 1.5px solid var(--border);
+    border-radius: var(--radius-sm);
+    padding: 12px 14px;
+    margin-bottom: 8px;
+    color: var(--text);
+    font-family: var(--sans);
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all .18s;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  .option-btn .opt-letter {
+    width: 26px; height: 26px;
+    border-radius: 8px;
+    background: var(--border);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 12px; font-weight: 800; flex-shrink: 0;
+    font-family: var(--mono);
+  }
+  .option-btn:hover { border-color: var(--accent); }
+  .option-btn.selected { border-color: var(--accent); background: rgba(108,99,255,.15); }
+  .option-btn.selected .opt-letter { background: var(--accent); color: #fff; }
+  .option-btn.correct { border-color: var(--accent2) !important; background: rgba(0,212,170,.12) !important; }
+  .option-btn.correct .opt-letter { background: var(--accent2) !important; color: #0f1117 !important; }
+  .option-btn.wrong { border-color: var(--accent3) !important; background: rgba(255,107,107,.12) !important; }
+  .option-btn.wrong .opt-letter { background: var(--accent3) !important; color: #fff !important; }
+  .option-btn:disabled { cursor: default; }
 
-#generatedCode {
-  font-family: 'Courier New', monospace; font-size: 13px;
-  background: #1e1e2e; color: #cdd6f4;
-  padding: 14px 16px; min-height: 120px;
-  white-space: pre-wrap; line-height: 1.6; flex-shrink: 0;
-}
+  .feedback-box {
+    border-radius: var(--radius-sm);
+    padding: 12px 14px;
+    margin-top: 10px;
+    font-size: 13px;
+    font-weight: 600;
+    line-height: 1.5;
+    display: none;
+  }
+  .feedback-box.show { display: block; }
+  .feedback-box.ok { background: rgba(0,212,170,.12); border: 1px solid var(--accent2); color: var(--accent2); }
+  .feedback-box.err { background: rgba(255,107,107,.12); border: 1px solid var(--accent3); color: var(--accent3); }
 
-.run-bar {
-  display: flex; align-items: center; gap: 10px;
-  padding: 8px 16px; background: white;
-  border-top: 1px solid #e5e7eb; border-bottom: 1px solid #e5e7eb;
-  flex-shrink: 0;
-}
-button.run-btn {
-  background: #2d2d6b; color: white; border: none;
-  border-radius: 6px; padding: 8px 18px;
-  font-size: 13px; font-weight: 600; cursor: pointer;
-}
-button.run-btn:hover { background: #1e1e52; }
-button.run-btn:disabled { background: #9ca3af; cursor: not-allowed; }
-.attempts-badge { font-size: 12px; color: #6b7280; margin-left: auto; }
-.attempts-badge span { font-weight: 700; color: #dc2626; }
+  .progress-bar-wrap { background: var(--border); border-radius: 4px; height: 6px; margin-bottom: 16px; }
+  .progress-bar-fill { height: 100%; border-radius: 4px; background: var(--accent); transition: width .4s; }
 
-#output {
-  font-family: 'Courier New', monospace; font-size: 13px;
-  padding: 12px 16px; min-height: 60px; line-height: 1.6;
-  background: #f9fafb; color: #111827; white-space: pre-wrap;
-  border-bottom: 1px solid #e5e7eb; flex-shrink: 0;
-}
-#output.error { color: #dc2626; }
-#output.success { color: #059669; font-weight: 600; }
+  /* ── SCORE CARD ── */
+  .score-ring {
+    width: 100px; height: 100px;
+    border-radius: 50%;
+    border: 5px solid var(--accent);
+    display: flex; align-items: center; justify-content: center;
+    margin: 0 auto 16px;
+    font-size: 28px; font-weight: 900;
+    color: var(--accent);
+    font-family: var(--mono);
+  }
+  .score-ring.good { border-color: var(--accent2); color: var(--accent2); }
 
-/* Hints */
-.hint-container { padding: 10px 16px 0; flex-shrink: 0; }
-.hint-card {
-  border-radius: 8px; padding: 10px 13px; margin-bottom: 8px;
-  display: none; animation: fadeIn 0.3s ease;
-}
-@keyframes fadeIn { from { opacity:0; transform:translateY(-4px); } to { opacity:1; transform:translateY(0); } }
-.hint-card.visible { display: block; }
-.hint-card.h1 { background: #fffbeb; border: 1px solid #fcd34d; }
-.hint-card.h2 { background: #fff7ed; border: 1px solid #fdba74; }
-.hint-card.h3 { background: #fef2f2; border: 1px solid #fca5a5; }
-.hint-card .hlabel { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 5px; }
-.hint-card.h1 .hlabel { color: #92400e; }
-.hint-card.h2 .hlabel { color: #9a3412; }
-.hint-card.h3 .hlabel { color: #991b1b; }
-.hint-card p { font-size: 13px; line-height: 1.5; }
-.hint-card.h1 p { color: #78350f; }
-.hint-card.h2 p { color: #7c2d12; }
-.hint-card.h3 p { color: #7f1d1d; }
+  /* ── PHASE TABS ── */
+  .phase-tabs {
+    display: flex;
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+    overflow-x: auto;
+  }
+  .phase-tab {
+    flex: 1;
+    min-width: 80px;
+    padding: 12px 8px;
+    text-align: center;
+    font-size: 11px;
+    font-weight: 700;
+    color: var(--text2);
+    border-bottom: 2px solid transparent;
+    cursor: pointer;
+    transition: all .2s;
+    white-space: nowrap;
+  }
+  .phase-tab.active { color: var(--accent); border-bottom-color: var(--accent); }
+  .phase-tab.done { color: var(--accent2); }
 
-/* Solution compare */
-.solution-compare {
-  margin: 0 16px 10px; background: #f0f9ff;
-  border: 1px solid #bae6fd; border-radius: 8px;
-  padding: 12px 14px; display: none; flex-shrink: 0;
-}
-.solution-compare.visible { display: block; }
-.solution-compare .slabel { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; color: #0369a1; margin-bottom: 8px; }
-.sol-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
-.sol-block { background: #1e1e2e; border-radius: 6px; padding: 8px 10px; }
-.sol-block .sol-title { font-size: 10px; color: #94a3b8; margin-bottom: 4px; font-weight: 600; }
-.sol-block pre { font-family: 'Courier New', monospace; font-size: 11px; color: #a6e3a1; line-height: 1.5; }
+  /* ── BLOCKS BUILDER ── */
+  .block-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 10px;
+    flex-wrap: wrap;
+  }
+  .block-label { font-family: var(--mono); font-size: 13px; color: var(--text2); font-weight: 600; min-width: 60px; }
+  .block-select {
+    background: var(--surface2);
+    border: 1.5px solid var(--border);
+    border-radius: 8px;
+    padding: 7px 10px;
+    color: var(--text);
+    font-family: var(--mono);
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    outline: none;
+    transition: border-color .2s;
+    flex: 1;
+    min-width: 70px;
+  }
+  .block-select:focus { border-color: var(--accent); }
 
-/* Self assess */
-.self-assess {
-  margin: 0 16px 10px; background: #fdf4ff;
-  border: 1px solid #e879f9; border-radius: 8px;
-  padding: 12px 14px; display: none; flex-shrink: 0;
-}
-.self-assess.visible { display: block; }
-.self-assess .salabel { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; color: #86198f; margin-bottom: 8px; }
-.self-assess p { font-size: 13px; color: #4a044e; margin-bottom: 8px; }
-.stars { display: flex; gap: 6px; }
-.star {
-  width: 36px; height: 36px; border-radius: 50%;
-  border: 2px solid #e9d5ff; background: white; cursor: pointer;
-  display: flex; align-items: center; justify-content: center;
-  font-size: 15px; font-weight: 700; color: #7c3aed; transition: all 0.15s;
-}
-.star:hover, .star.selected { background: #f3e8ff; border-color: #a855f7; }
+  .code-preview {
+    background: #0d0f1a;
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    padding: 14px;
+    font-family: var(--mono);
+    font-size: 13px;
+    line-height: 1.8;
+    color: #abb2bf;
+    margin: 12px 0;
+    overflow-x: auto;
+    white-space: pre;
+  }
+  .code-preview .kw { color: #c678dd; }
+  .code-preview .fn { color: #61afef; }
+  .code-preview .var { color: #e5c07b; }
+  .code-preview .num { color: #d19a66; }
+  .code-preview .op { color: #56b6c2; }
+  .code-preview .indent { display: inline-block; width: 20px; }
 
-/* Meta */
-.meta-box {
-  margin: 0 16px 10px; background: #f0fdf4;
-  border: 1px solid #86efac; border-radius: 8px;
-  padding: 12px 14px; display: none; flex-shrink: 0;
-}
-.meta-box.visible { display: block; }
-.meta-box .mlabel { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; color: #166534; margin-bottom: 8px; }
-.meta-box p { font-size: 13px; color: #14532d; margin-bottom: 6px; line-height: 1.5; }
-.meta-box textarea {
-  width: 100%; border: 1px solid #86efac; border-radius: 6px;
-  padding: 7px 10px; font-size: 13px; font-family: inherit;
-  resize: vertical; min-height: 64px; background: white; margin-bottom: 8px;
-}
-.meta-box .save-btn {
-  background: #16a34a; color: white; border: none;
-  border-radius: 6px; padding: 7px 16px; font-size: 13px; font-weight: 600; cursor: pointer;
-}
+  .run-btn {
+    background: linear-gradient(135deg, var(--accent2), #00b894);
+    color: #0f1117;
+    border: none;
+    border-radius: var(--radius-sm);
+    padding: 12px 20px;
+    font-family: var(--sans);
+    font-weight: 800;
+    font-size: 15px;
+    cursor: pointer;
+    width: 100%;
+    transition: all .2s;
+  }
+  .run-btn:active { transform: scale(.97); }
 
-/* Progress */
-.progress-viz {
-  margin: 0 16px 10px; background: white;
-  border: 1px solid #e5e7eb; border-radius: 8px; padding: 12px 14px; flex-shrink: 0;
-}
-.progress-viz .pvlabel { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; color: #374151; margin-bottom: 10px; }
-.progress-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
-.prog-card { background: #f9fafb; border: 1px solid #e5e7eb; border-radius: 6px; padding: 8px 10px; text-align: center; }
-.prog-card .pval { font-size: 22px; font-weight: 700; color: #1e1b4b; }
-.prog-card .pname { font-size: 11px; color: #6b7280; margin-top: 2px; }
-.prog-bar { height: 4px; background: #e5e7eb; border-radius: 2px; margin-top: 6px; }
-.prog-bar-fill { height: 100%; border-radius: 2px; transition: width 0.4s ease; }
+  .result-box {
+    border-radius: var(--radius-sm);
+    padding: 14px;
+    font-family: var(--mono);
+    font-size: 15px;
+    font-weight: 700;
+    text-align: center;
+    margin-top: 12px;
+  }
+  .result-box.waiting { background: var(--surface2); color: var(--text2); }
+  .result-box.success { background: rgba(0,212,170,.15); border: 2px solid var(--accent2); color: var(--accent2); font-size: 20px; }
+  .result-box.failure { background: rgba(255,107,107,.12); border: 2px solid var(--accent3); color: var(--accent3); }
 
-/* Analytics */
-.analytics-bar {
-  background: #1e1e2e; color: #cdd6f4;
-  padding: 7px 16px; font-size: 11px;
-  display: flex; gap: 16px; font-family: monospace;
-  flex-shrink: 0; margin-top: auto;
-}
-.analytics-bar strong { color: #a6e3a1; }
+  .attempt-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 20px;
+    padding: 5px 12px;
+    font-size: 12px;
+    color: var(--text2);
+    font-weight: 700;
+    margin-bottom: 10px;
+  }
 
-#pyodide-status {
-  font-size: 12px; color: #6b7280;
-  padding: 5px 16px; background: white;
-  border-bottom: 1px solid #e5e7eb; flex-shrink: 0;
-}
+  /* ── HINT ── */
+  .hint-btn {
+    background: var(--surface2);
+    border: 1.5px solid var(--accent4);
+    color: var(--accent4);
+    border-radius: var(--radius-sm);
+    padding: 10px 14px;
+    font-family: var(--sans);
+    font-size: 13px;
+    font-weight: 700;
+    cursor: pointer;
+    width: 100%;
+    text-align: left;
+    margin-bottom: 8px;
+    transition: all .2s;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .hint-btn:hover { background: rgba(255,209,102,.08); }
+  .hint-content {
+    background: rgba(255,209,102,.07);
+    border: 1px solid rgba(255,209,102,.2);
+    border-radius: var(--radius-sm);
+    padding: 12px;
+    font-size: 13px;
+    color: var(--text);
+    margin-bottom: 8px;
+    display: none;
+    line-height: 1.6;
+  }
+  .hint-content.show { display: block; }
+
+  /* ── PREDICTION INPUT ── */
+  .prediction-input {
+    width: 100%;
+    background: var(--surface2);
+    border: 1.5px solid var(--border);
+    border-radius: var(--radius-sm);
+    padding: 12px 14px;
+    color: var(--text);
+    font-family: var(--mono);
+    font-size: 18px;
+    font-weight: 700;
+    outline: none;
+    text-align: center;
+    transition: border-color .2s;
+  }
+  .prediction-input:focus { border-color: var(--accent); }
+
+  /* ── REFLECTION ── */
+  .reflection-textarea {
+    width: 100%;
+    background: var(--surface2);
+    border: 1.5px solid var(--border);
+    border-radius: var(--radius-sm);
+    padding: 12px 14px;
+    color: var(--text);
+    font-family: var(--sans);
+    font-size: 14px;
+    outline: none;
+    resize: vertical;
+    min-height: 100px;
+    line-height: 1.6;
+    transition: border-color .2s;
+  }
+  .reflection-textarea:focus { border-color: var(--accent); }
+
+  /* ── STARS ── */
+  .stars { display: flex; gap: 8px; justify-content: center; margin: 10px 0; }
+  .star {
+    width: 40px; height: 40px;
+    background: var(--surface2);
+    border: 1.5px solid var(--border);
+    border-radius: 10px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 20px;
+    cursor: pointer;
+    transition: all .2s;
+  }
+  .star.active { background: rgba(255,209,102,.15); border-color: var(--accent4); transform: scale(1.1); }
+
+  /* ── COMPARISON ── */
+  .compare-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  .compare-box { background: var(--surface2); border-radius: var(--radius-sm); padding: 12px; }
+  .compare-box h4 { font-size: 11px; text-transform: uppercase; letter-spacing: .08em; color: var(--text2); margin-bottom: 8px; }
+  .compare-box pre { font-family: var(--mono); font-size: 12px; color: #abb2bf; line-height: 1.7; white-space: pre-wrap; }
+
+  /* ── FINAL SUMMARY ── */
+  .summary-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin: 16px 0; }
+  .summary-item {
+    background: var(--surface2);
+    border-radius: var(--radius-sm);
+    padding: 14px;
+    text-align: center;
+  }
+  .summary-item .val { font-size: 26px; font-weight: 900; font-family: var(--mono); color: var(--accent2); }
+  .summary-item .lbl { font-size: 11px; text-transform: uppercase; letter-spacing: .07em; color: var(--text2); margin-top: 4px; }
+
+  .improvement-bar {
+    background: var(--surface2);
+    border-radius: var(--radius-sm);
+    padding: 14px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin: 10px 0;
+  }
+  .improvement-bar .label { font-size: 12px; color: var(--text2); font-weight: 700; min-width: 60px; }
+  .bar-track { flex: 1; height: 8px; background: var(--border); border-radius: 4px; overflow: hidden; }
+  .bar-fill { height: 100%; border-radius: 4px; transition: width 1s ease; }
+  .improvement-bar .score-lbl { font-size: 13px; font-weight: 800; font-family: var(--mono); min-width: 36px; text-align: right; }
+
+  /* ── ANIMATIONS ── */
+  @keyframes fadeUp { from { opacity:0; transform: translateY(16px); } to { opacity:1; transform: none; } }
+  .fade-in { animation: fadeUp .4s ease both; }
+
+  @keyframes pulse { 0%,100% { transform: scale(1); } 50% { transform: scale(1.05); } }
+  .pulse { animation: pulse .6s ease; }
+
+  /* ── TOAST ── */
+  .toast {
+    position: fixed;
+    bottom: 24px;
+    left: 50%;
+    transform: translateX(-50%) translateY(80px);
+    background: var(--accent2);
+    color: #0f1117;
+    padding: 12px 24px;
+    border-radius: 30px;
+    font-weight: 800;
+    font-size: 14px;
+    z-index: 999;
+    transition: transform .3s ease;
+    white-space: nowrap;
+  }
+  .toast.show { transform: translateX(-50%) translateY(0); }
+
+  .divider { height: 1px; background: var(--border); margin: 16px 0; }
+
+  /* Tag */
+  .tag {
+    display: inline-block;
+    background: rgba(108,99,255,.15);
+    color: var(--accent);
+    border-radius: 6px;
+    padding: 2px 8px;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: .06em;
+    text-transform: uppercase;
+  }
+  .tag.green { background: rgba(0,212,170,.12); color: var(--accent2); }
+  .tag.red { background: rgba(255,107,107,.12); color: var(--accent3); }
 </style>
 </head>
 <body>
 
-<header>
-  <h1>CodeSense Lab</h1>
-  <span class="version">v3 — Οπτικά blocks με άμεση εισαγωγή αριθμών</span>
-</header>
+<!-- ════════════════════════════════════════
+     SCREEN 1 — REGISTRATION
+════════════════════════════════════════ -->
+<div id="screen-register" class="screen active">
+  <div class="app-header">
+    <span class="logo">Code<span>Sense</span> Lab</span>
+  </div>
 
-<div class="phase-bar">
-  <div class="phase-step active" id="ps1"><div class="dot">1</div> Πρόβλεψη</div>
-  <div class="phase-arrow">›</div>
-  <div class="phase-step" id="ps2"><div class="dot">2</div> Διερεύνηση</div>
-  <div class="phase-arrow">›</div>
-  <div class="phase-step" id="ps3"><div class="dot">3</div> Αναδόμηση</div>
-  <div class="phase-arrow">›</div>
-  <div class="phase-step" id="ps4"><div class="dot">4</div> Αναστοχασμός</div>
-</div>
-
-<div class="layout">
-
-  <!-- ΑΡΙΣΤΕΡΑ -->
-  <div class="left-panel">
-
-    <div class="problem-box">
-      <div class="tag">Άσκηση — Βρόχοι</div>
-      <h2>Άθροισμα αριθμών 1 έως N</h2>
-      <p>Φτιάξε πρόγραμμα που υπολογίζει το άθροισμα όλων των αριθμών από το 1 μέχρι το <strong>N=10</strong>. Το σωστό αποτέλεσμα είναι <strong>55</strong>. Χρησιμοποίησε βρόχο.</p>
+  <div class="content fade-in">
+    <div class="hero">
+      <span class="hero-icon">🧪</span>
+      <h1>Καλώς ήρθες στο <span>CodeSense</span> Lab!</h1>
+      <p>Ένα διαδραστικό εργαστήριο για να μάθεις βρόχους με Python μέσω πρόβλεψης, διερεύνησης και αναστοχασμού.</p>
     </div>
 
-    <div class="prediction-box" id="predictionBox">
-      <div class="tag">🔮 Φάση 1 — Πρόβλεψη</div>
-      <p>Πριν γράψεις κώδικα, τι αποτέλεσμα περιμένεις;</p>
-      <input type="number" id="predictionInput" placeholder="π.χ. 55">
-      <button onclick="submitPrediction()">Καταγραφή →</button>
-    </div>
+    <div class="card">
+      <div class="card-title">👤 Πες μας λίγα πράγματα για σένα</div>
 
-    <!-- ΟΠΤΙΚΟΣ EDITOR ΜΕ BLOCKS -->
-    <div class="editor-area">
-      <div class="editor-title">🧩 Φτιάξε τον κώδικά σου — συμπλήρωσε τα κενά</div>
-
-      <!-- Block 1: set variable -->
-      <div class="block var-block">
-        <span>ορισμός</span>
-        <input class="block-input wide" id="varName" value="total" placeholder="όνομα">
-        <span>=</span>
-        <input class="block-input" id="varInit" value="0" type="number" placeholder="0">
+      <div class="field">
+        <label>Όνομα</label>
+        <input type="text" id="reg-name" placeholder="π.χ. Μαρία" autocomplete="off"/>
+        <p style="font-size:11px;color:var(--text2);margin-top:6px;">⚠️ Γράψε μόνο το μικρό σου όνομα — δεν συλλέγουμε προσωπικά δεδομένα.</p>
       </div>
 
-      <!-- Block 2: for loop -->
-      <div class="block loop-block">
-        <div class="loop-header">
-          <span>για</span>
-          <select class="block-select" id="loopVar">
-            <option value="i">i</option>
-            <option value="j">j</option>
-            <option value="n">n</option>
-          </select>
-          <span>από</span>
-          <input class="block-input" id="loopFrom" value="1" type="number" placeholder="1">
-          <span>έως</span>
-          <input class="block-input" id="loopTo" value="10" type="number" placeholder="10">
-        </div>
-        <!-- Block 3: body (inside loop) -->
-        <div class="loop-body">
-          <span>ορισμός</span>
-          <select class="block-select" id="bodyVar">
-            <option value="total">total</option>
-            <option value="sum">sum</option>
-            <option value="s">s</option>
-          </select>
-          <span>=</span>
-          <select class="block-select" id="bodyLeft">
-            <option value="total">total</option>
-            <option value="sum">sum</option>
-            <option value="s">s</option>
-          </select>
-          <select class="block-select" id="bodyOp">
-            <option value="+">+</option>
-            <option value="-">−</option>
-            <option value="*">×</option>
-          </select>
-          <select class="block-select" id="bodyRight">
-            <option value="i">i</option>
-            <option value="j">j</option>
-            <option value="n">n</option>
-            <option value="1">1</option>
-          </select>
-        </div>
-      </div>
-
-      <!-- Block 4: print -->
-      <div class="block print-block">
-        <span>εκτύπωσε</span>
-        <select class="block-select" id="printVar">
-          <option value="total">total</option>
-          <option value="sum">sum</option>
-          <option value="s">s</option>
-          <option value="i">i</option>
+      <div class="field">
+        <label>Ηλικία</label>
+        <select id="reg-age">
+          <option value="">Επίλεξε ηλικία...</option>
+          <option value="12">12 ετών</option>
+          <option value="13">13 ετών</option>
+          <option value="14">14 ετών</option>
+          <option value="15">15 ετών</option>
+          <option value="16">16 ετών</option>
+          <option value="17">17 ετών</option>
+          <option value="18">18 ετών</option>
         </select>
       </div>
 
-      <!-- Live preview -->
-      <div style="margin-top:8px; padding:10px 14px; background:#1e1e2e; border-radius:8px;">
-        <div style="font-size:10px;color:#6b7280;font-family:monospace;margin-bottom:6px;text-transform:uppercase;letter-spacing:0.08em;">Προεπισκόπηση κώδικα</div>
-        <pre id="livePreview" style="font-family:'Courier New',monospace;font-size:12px;color:#a6e3a1;line-height:1.7;"></pre>
+      <div class="field">
+        <label>Φύλο</label>
+        <div class="gender-row">
+          <button class="gender-btn" onclick="selectGender('Αγόρι', this)">👦 Αγόρι</button>
+          <button class="gender-btn" onclick="selectGender('Κορίτσι', this)">👧 Κορίτσι</button>
+          <button class="gender-btn" onclick="selectGender('Άλλο', this)">🙂 Άλλο</button>
+        </div>
       </div>
-
     </div>
+
+    <button class="btn btn-primary" onclick="startRegister()">Ξεκινάμε! →</button>
+  </div>
+</div>
+
+<!-- ════════════════════════════════════════
+     SCREEN 2 — PRE-TEST
+════════════════════════════════════════ -->
+<div id="screen-pretest" class="screen">
+  <div class="app-header">
+    <span class="logo">Code<span>Sense</span> Lab</span>
+    <span class="student-badge" id="header-name-pre">—</span>
   </div>
 
-  <!-- ΔΕΞΙΑ -->
-  <div class="right-panel">
+  <div class="step-bar">
+    <div class="step-dot active" id="st1"></div>
+    <div class="step-dot" id="st2"></div>
+    <div class="step-dot" id="st3"></div>
+    <div class="step-dot" id="st4"></div>
+    <div class="step-dot" id="st5"></div>
+    <div class="step-dot" id="st6"></div>
+    <div class="step-dot" id="st7"></div>
+  </div>
 
-    <div id="pyodide-status">⏳ Φόρτωση Python...</div>
+  <div class="content fade-in">
+    <div class="card" style="border-color:var(--accent);border-width:2px;">
+      <div class="card-title" style="color:var(--accent4)">📋 Προ-Τεστ Εννοιολογικής Κατανόησης</div>
+      <p style="font-size:13px;color:var(--text2);margin-bottom:16px;">Απάντησε στις ερωτήσεις <strong>ΠΡΙΝ</strong> το μάθημα. Δεν βαθμολογείται — μας βοηθά να δούμε τι ήδη γνωρίζεις!</p>
 
-    <div class="run-bar">
-      <button class="run-btn" id="runBtn" disabled>▶ Εκτέλεση</button>
-      <div class="attempts-badge">Προσπάθειες: <span id="attemptCount">0</span></div>
+      <div class="progress-bar-wrap">
+        <div class="progress-bar-fill" id="pre-progress" style="width:0%"></div>
+      </div>
+
+      <div id="pre-question-area"></div>
+      <div id="pre-feedback" class="feedback-box"></div>
+
+      <div style="display:flex;gap:10px;margin-top:14px;">
+        <button class="btn btn-secondary" id="pre-prev-btn" onclick="preNav(-1)" style="flex:0.6" disabled>← Πίσω</button>
+        <button class="btn btn-primary" id="pre-next-btn" onclick="preNav(1)" style="flex:1">Επόμενη →</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ════════════════════════════════════════
+     SCREEN 3 — EXERCISE (4 PHASES)
+════════════════════════════════════════ -->
+<div id="screen-exercise" class="screen">
+  <div class="app-header">
+    <span class="logo">Code<span>Sense</span> Lab</span>
+    <span class="student-badge" id="header-name-ex">—</span>
+  </div>
+
+  <div class="phase-tabs">
+    <div class="phase-tab active" id="tab-1" onclick="goPhase(1)">🔮 Πρόβλεψη</div>
+    <div class="phase-tab" id="tab-2" onclick="goPhase(2)">🧩 Διερεύνηση</div>
+    <div class="phase-tab" id="tab-3" onclick="goPhase(3)">🔍 Αναδόμηση</div>
+    <div class="phase-tab" id="tab-4" onclick="goPhase(4)">🧠 Αναστοχασμός</div>
+  </div>
+
+  <!-- Phase 1: Prediction -->
+  <div id="phase-1" class="content fade-in">
+    <div class="card" style="border-color:rgba(108,99,255,.4)">
+      <div class="card-title">🔮 Φάση 1 — Πρόβλεψη</div>
+      <p style="font-size:14px;margin-bottom:16px;">Διάβασε την άσκηση. <strong>Πριν γράψεις κώδικα</strong>, μαντέψε το αποτέλεσμα!</p>
+
+      <div class="card" style="background:var(--surface2);margin-bottom:0">
+        <p style="font-size:13px;color:var(--text2);margin-bottom:6px;">📌 Άσκηση — Βρόχοι</p>
+        <p style="font-size:15px;font-weight:700;line-height:1.6;">Φτιάξε πρόγραμμα που υπολογίζει το άθροισμα όλων των αριθμών από το <span style="color:var(--accent2)">1</span> μέχρι το <span style="color:var(--accent2)">N=10</span>.<br>Το σωστό αποτέλεσμα είναι <span style="color:var(--accent4)">55</span>.</p>
+      </div>
     </div>
 
-    <div class="section-label">Αποτέλεσμα</div>
-    <div id="output">—</div>
+    <div class="card">
+      <div class="card-title">✏️ Η πρόβλεψή σου</div>
+      <p style="font-size:13px;color:var(--text2);margin-bottom:12px;">Τι αποτέλεσμα περιμένεις να τυπώσει ο κώδικας;</p>
+      <input type="number" class="prediction-input" id="prediction-input" placeholder="Γράψε αριθμό..."/>
+      <p style="font-size:12px;color:var(--text2);margin-top:8px;text-align:center;">Μην ανησυχείς αν δεν είσαι σίγουρος/η — απλά μάντεψε!</p>
+    </div>
 
-    <div class="hint-container">
-      <div class="hint-card h1" id="hint1">
-        <div class="hlabel">💡 Υπόδειξη 1</div>
-        <p>Η μεταβλητή <strong>total</strong> πρέπει να ξεκινά από <strong>0</strong>. Βεβαιώσου ότι το αρχικό της ορισμός είναι σωστό.</p>
+    <button class="btn btn-primary" onclick="savePrediction()">Καταγραφή Πρόβλεψης →</button>
+  </div>
+
+  <!-- Phase 2: Exploration -->
+  <div id="phase-2" class="content fade-in" style="display:none">
+    <div class="card">
+      <div class="card-title">🧩 Φάση 2 — Διερεύνηση</div>
+      <p style="font-size:13px;color:var(--text2);margin-bottom:14px;">Συμπλήρωσε τα κενά στον κώδικα επιλέγοντας τις σωστές τιμές:</p>
+
+      <div class="block-row">
+        <span class="block-label">ορισμός</span>
+        <select class="block-select" id="b-varname" onchange="updatePreview()">
+          <option>total</option><option>sum</option><option>s</option>
+        </select>
+        <span style="font-family:var(--mono);color:var(--text2)">=</span>
+        <select class="block-select" id="b-init" onchange="updatePreview()">
+          <option>0</option><option>1</option><option>10</option>
+        </select>
       </div>
-      <div class="hint-card h2" id="hint2">
-        <div class="hlabel">💡 Υπόδειξη 2</div>
-        <p>Ο βρόχος πρέπει να τρέξει <strong>από 1 έως 10</strong>. Μέσα στον βρόχο: <code>total = total + i</code>.</p>
+
+      <div class="block-row">
+        <span class="block-label">για</span>
+        <select class="block-select" id="b-loopvar" onchange="updatePreview()">
+          <option>i</option><option>j</option><option>n</option>
+        </select>
+        <span style="font-family:var(--mono);color:var(--text2);font-size:12px;">από</span>
+        <select class="block-select" id="b-from" onchange="updatePreview()">
+          <option>1</option><option>0</option><option>2</option>
+        </select>
+        <span style="font-family:var(--mono);color:var(--text2);font-size:12px;">έως</span>
+        <select class="block-select" id="b-to" onchange="updatePreview()">
+          <option>11</option><option>10</option><option>N</option>
+        </select>
       </div>
-      <div class="hint-card h3" id="hint3">
-        <div class="hlabel">💡 Υπόδειξη 3 — Σχεδόν έτοιμο!</div>
-        <p>Βεβαιώσου ότι το <strong>εκτύπωσε</strong> δείχνει στη μεταβλητή <strong>total</strong> — και ότι είναι <em>έξω</em> από τον βρόχο.</p>
+
+      <div class="block-row">
+        <span class="block-label" style="min-width:60px">ορισμός</span>
+        <select class="block-select" id="b-acc" onchange="updatePreview()">
+          <option>total</option><option>sum</option><option>s</option>
+        </select>
+        <span style="font-family:var(--mono);color:var(--text2)">=</span>
+        <select class="block-select" id="b-acc2" onchange="updatePreview()">
+          <option>total</option><option>sum</option><option>s</option>
+        </select>
+        <select class="block-select" id="b-op" onchange="updatePreview()" style="max-width:55px">
+          <option>+</option><option>-</option><option>*</option>
+        </select>
+        <select class="block-select" id="b-addend" onchange="updatePreview()">
+          <option>i</option><option>j</option><option>1</option>
+        </select>
+      </div>
+
+      <div class="block-row">
+        <span class="block-label">εκτύπωσε</span>
+        <select class="block-select" id="b-print" onchange="updatePreview()">
+          <option>total</option><option>sum</option><option>i</option>
+        </select>
       </div>
     </div>
 
-    <div class="solution-compare" id="solutionCompare">
-      <div class="slabel">🔍 Σύγκριση λύσεων</div>
-      <div class="sol-grid">
-        <div class="sol-block">
-          <div class="sol-title">Η λύση σου</div>
-          <pre id="userSolution"></pre>
-        </div>
-        <div class="sol-block">
-          <div class="sol-title">Εναλλακτική</div>
-          <pre>total = 0
+    <div class="card">
+      <div class="card-title" style="font-size:11px;">👁 Προεπισκόπηση κώδικα</div>
+      <div class="code-preview" id="code-preview">
+<span class="var">total</span> <span class="op">=</span> <span class="num">0</span>
+<span class="kw">for</span> <span class="var">i</span> <span class="kw">in</span> <span class="fn">range</span>(<span class="num">1</span>, <span class="num">11</span>):
+<span class="indent">  </span><span class="var">total</span> <span class="op">=</span> <span class="var">total</span> <span class="op">+</span> <span class="var">i</span>
+<span class="fn">print</span>(<span class="var">total</span>)</div>
+
+      <div class="attempt-badge"><span>🎯</span> Προσπάθειες: <strong id="attempt-count">0</strong></div>
+      <button class="run-btn" onclick="runCode()">▶ Εκτέλεση</button>
+      <div class="result-box waiting" id="result-box">Αποτέλεσμα: —</div>
+    </div>
+
+    <div class="card">
+      <div class="card-title" style="color:var(--accent4)">💡 Υποδείξεις</div>
+      <button class="hint-btn" onclick="toggleHint(1)"><span>💡</span> Υπόδειξη 1 — Αρχική τιμή</button>
+      <div class="hint-content" id="hint-1">Η μεταβλητή <strong>total</strong> πρέπει να ξεκινά από <strong>0</strong>. Βεβαιώσου ότι το αρχικό της ορισμός είναι σωστό.</div>
+
+      <button class="hint-btn" onclick="toggleHint(2)"><span>💡</span> Υπόδειξη 2 — Βρόχος</button>
+      <div class="hint-content" id="hint-2">Ο βρόχος πρέπει να τρέξει <strong>από 1 έως 10</strong>. Στην Python το <code>range(1, 11)</code> δίνει αριθμούς 1-10. Μέσα στον βρόχο: <code>total = total + i</code>.</div>
+
+      <button class="hint-btn" onclick="toggleHint(3)"><span>💡</span> Υπόδειξη 3 — Εκτύπωση</button>
+      <div class="hint-content" id="hint-3">Βεβαιώσου ότι το <strong>εκτύπωσε</strong> δείχνει στη μεταβλητή <strong>total</strong> — και ότι είναι <em>έξω</em> από τον βρόχο.</div>
+    </div>
+
+    <button class="btn btn-secondary" id="phase2-next" onclick="goPhase(3)" disabled>Συνέχεια στην Αναδόμηση →</button>
+  </div>
+
+  <!-- Phase 3: Restructuring -->
+  <div id="phase-3" class="content fade-in" style="display:none">
+    <div class="card">
+      <div class="card-title">🔍 Φάση 3 — Αναδόμηση</div>
+      <p style="font-size:13px;color:var(--text2);margin-bottom:16px;">Σύγκρινε τη λύση σου με την εναλλακτική. Τι παρατηρείς;</p>
+
+      <div class="compare-grid">
+        <div class="compare-box" style="border:1.5px solid var(--accent)">
+          <h4 style="color:var(--accent)">Η λύση σου</h4>
+          <pre id="student-solution">total = 0
 for i in range(1, 11):
   total += i
+print(total)</pre>
+        </div>
+        <div class="compare-box" style="border:1.5px solid var(--accent2)">
+          <h4 style="color:var(--accent2)">Εναλλακτική</h4>
+          <pre>total = 0
+for i in range(1, 11):
+  total = total + i
 print(total)</pre>
         </div>
       </div>
     </div>
 
-    <div class="self-assess" id="selfAssess">
-      <div class="salabel">⭐ Αξιολόγησε τον εαυτό σου</div>
-      <p>Πόσο σίγουρος/η νιώθεις για τους βρόχους;</p>
-      <div class="stars">
-        <div class="star" onclick="selectStar(1)">1</div>
-        <div class="star" onclick="selectStar(2)">2</div>
-        <div class="star" onclick="selectStar(3)">3</div>
-        <div class="star" onclick="selectStar(4)">4</div>
-        <div class="star" onclick="selectStar(5)">5</div>
+    <div class="card">
+      <div class="card-title">⭐ Αυτοαξιολόγηση</div>
+      <p style="font-size:13px;color:var(--text2);margin-bottom:10px;">Πόσο σίγουρος/η νιώθεις για τους βρόχους τώρα;</p>
+      <div class="stars" id="confidence-stars">
+        <div class="star" onclick="rateStar(1)">⭐</div>
+        <div class="star" onclick="rateStar(2)">⭐</div>
+        <div class="star" onclick="rateStar(3)">⭐</div>
+        <div class="star" onclick="rateStar(4)">⭐</div>
+        <div class="star" onclick="rateStar(5)">⭐</div>
+      </div>
+      <p style="font-size:12px;color:var(--text2);text-align:center;margin-top:6px;" id="star-label">Επίλεξε 1–5 αστέρια</p>
+    </div>
+
+    <button class="btn btn-primary" id="phase3-next" onclick="goPhase(4)" disabled>Αναστοχασμός →</button>
+  </div>
+
+  <!-- Phase 4: Reflection -->
+  <div id="phase-4" class="content fade-in" style="display:none">
+    <div class="card" style="border-color:rgba(0,212,170,.3)">
+      <div class="card-title" style="color:var(--accent2)">🧠 Φάση 4 — Αναστοχασμός</div>
+      <p style="font-size:13px;color:var(--text2);margin-bottom:12px;">Πρόβλεψες: <strong id="prediction-recall" style="color:var(--accent4)">—</strong></p>
+    </div>
+
+    <div class="card">
+      <div class="card-title">📝 Σκέψεις μου</div>
+
+      <div class="field">
+        <label>Τι σε δυσκόλεψε;</label>
+        <textarea class="reflection-textarea" id="reflection-hard" placeholder="Γράψε ελεύθερα..."></textarea>
+      </div>
+
+      <div class="field" style="margin-bottom:0">
+        <label>Τι θα έκανες διαφορετικά;</label>
+        <textarea class="reflection-textarea" id="reflection-diff" placeholder="Γράψε ελεύθερα..."></textarea>
       </div>
     </div>
 
-    <div class="meta-box" id="metaBox">
-      <div class="mlabel">🧠 Φάση 4 — Αναστοχασμός</div>
-      <p><strong>Πρόβλεψες:</strong> <span id="predictionResult" style="font-weight:600;color:#7c3aed"></span></p>
-      <p>Τι σε δυσκόλεψε; Τι θα έκανες διαφορετικά;</p>
-      <textarea id="metaAnswer" placeholder="Γράψε εδώ τις σκέψεις σου..."></textarea>
-      <button class="save-btn" onclick="saveReflection()">Αποθήκευση και συνέχεια →</button>
-    </div>
-
-    <div class="progress-viz">
-      <div class="pvlabel">Πρόοδος</div>
-      <div class="progress-grid">
-        <div class="prog-card">
-          <div class="pval" id="pv-attempts">0</div>
-          <div class="pname">Προσπάθειες</div>
-          <div class="prog-bar"><div class="prog-bar-fill" id="pb-attempts" style="width:0%;background:#4338ca"></div></div>
-        </div>
-        <div class="prog-card">
-          <div class="pval" id="pv-hints">0</div>
-          <div class="pname">Hints</div>
-          <div class="prog-bar"><div class="prog-bar-fill" id="pb-hints" style="width:0%;background:#f59e0b"></div></div>
-        </div>
-        <div class="prog-card">
-          <div class="pval" id="pv-time">0s</div>
-          <div class="pname">Χρόνος</div>
-          <div class="prog-bar"><div class="prog-bar-fill" id="pb-time" style="width:0%;background:#10b981"></div></div>
-        </div>
-        <div class="prog-card">
-          <div class="pval" id="pv-phase">1/4</div>
-          <div class="pname">Φάση</div>
-          <div class="prog-bar"><div class="prog-bar-fill" id="pb-phase" style="width:25%;background:#a855f7"></div></div>
-        </div>
-      </div>
-    </div>
-
-    <div class="analytics-bar">
-      <div>Απόπειρες: <strong id="a-attempts">0</strong></div>
-      <div>Λάθη: <strong id="a-errors">0</strong></div>
-      <div>Hints: <strong id="a-hints">0</strong></div>
-      <div>Χρόνος: <strong id="a-time">0s</strong></div>
-      <div>Πρόβλεψη: <strong id="a-prediction">—</strong></div>
-    </div>
-
+    <button class="btn btn-success" id="reflection-save-btn" onclick="saveReflection()">Αποθήκευση και Συνέχεια →</button>
   </div>
 </div>
 
+<!-- ════════════════════════════════════════
+     SCREEN 4 — POST-TEST
+════════════════════════════════════════ -->
+<div id="screen-posttest" class="screen">
+  <div class="app-header">
+    <span class="logo">Code<span>Sense</span> Lab</span>
+    <span class="student-badge" id="header-name-post">—</span>
+  </div>
+
+  <div class="content fade-in">
+    <div class="card" style="border-color:var(--accent2);border-width:2px;">
+      <div class="card-title" style="color:var(--accent2)">✅ Μετα-Τεστ Εννοιολογικής Κατανόησης</div>
+      <p style="font-size:13px;color:var(--text2);margin-bottom:16px;">Απάντησε τώρα <strong>ΜΕΤΑ</strong> το μάθημα. Βλέπουμε τι έμαθες!</p>
+
+      <div class="progress-bar-wrap">
+        <div class="progress-bar-fill" id="post-progress" style="width:0%;background:var(--accent2)"></div>
+      </div>
+
+      <div id="post-question-area"></div>
+      <div id="post-feedback" class="feedback-box"></div>
+
+      <div style="display:flex;gap:10px;margin-top:14px;">
+        <button class="btn btn-secondary" id="post-prev-btn" onclick="postNav(-1)" style="flex:0.6" disabled>← Πίσω</button>
+        <button class="btn btn-success" id="post-next-btn" onclick="postNav(1)" style="flex:1">Επόμενη →</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ════════════════════════════════════════
+     SCREEN 5 — FINAL RESULTS
+════════════════════════════════════════ -->
+<div id="screen-results" class="screen">
+  <div class="app-header">
+    <span class="logo">Code<span>Sense</span> Lab</span>
+    <span class="student-badge" id="header-name-res">—</span>
+  </div>
+
+  <div class="content fade-in">
+    <div style="text-align:center;padding:20px 0 10px;">
+      <div style="font-size:48px;margin-bottom:8px;">🎉</div>
+      <h2 style="font-size:22px;font-weight:900;margin-bottom:6px;">Ολοκλήρωσες το Lab!</h2>
+      <p style="color:var(--text2);font-size:14px;" id="congrats-msg">Μπράβο για τη δουλειά σου!</p>
+    </div>
+
+    <div class="summary-grid">
+      <div class="summary-item">
+        <div class="val" id="res-preattempts">—</div>
+        <div class="lbl">Προσπάθειες</div>
+      </div>
+      <div class="summary-item">
+        <div class="val" id="res-hints">—</div>
+        <div class="lbl">Hints που πήρες</div>
+      </div>
+      <div class="summary-item">
+        <div class="val" id="res-confidence">—</div>
+        <div class="lbl">Αυτοπεποίθηση</div>
+      </div>
+      <div class="summary-item">
+        <div class="val" id="res-prediction">—</div>
+        <div class="lbl">Πρόβλεψη</div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">📊 Πρόοδος — Προ vs Μετα</div>
+
+      <div class="improvement-bar">
+        <span class="label">Προ-Τεστ</span>
+        <div class="bar-track"><div class="bar-fill" id="pre-bar" style="width:0%;background:var(--accent)"></div></div>
+        <span class="score-lbl" id="pre-score-lbl" style="color:var(--accent)">—</span>
+      </div>
+
+      <div class="improvement-bar">
+        <span class="label">Μετα-Τεστ</span>
+        <div class="bar-track"><div class="bar-fill" id="post-bar" style="width:0%;background:var(--accent2)"></div></div>
+        <span class="score-lbl" id="post-score-lbl" style="color:var(--accent2)">—</span>
+      </div>
+
+      <p style="font-size:13px;color:var(--text2);text-align:center;margin-top:12px;" id="improvement-msg"></p>
+    </div>
+
+    <div class="card" id="reflection-summary-card">
+      <div class="card-title">💬 Ο αναστοχασμός σου</div>
+      <p style="font-size:13px;color:var(--text2);margin-bottom:8px;">Τι σε δυσκόλεψε:</p>
+      <p style="font-size:14px;font-style:italic;color:var(--text);" id="res-hard">—</p>
+      <div class="divider"></div>
+      <p style="font-size:13px;color:var(--text2);margin-bottom:8px;">Τι θα έκανες διαφορετικά:</p>
+      <p style="font-size:14px;font-style:italic;color:var(--text);" id="res-diff">—</p>
+    </div>
+
+    <button class="btn btn-primary" onclick="downloadResults()">📥 Λήψη αποτελεσμάτων</button>
+    <div style="height:20px"></div>
+  </div>
+</div>
+
+<!-- Toast -->
+<div class="toast" id="toast"></div>
+
 <script>
-const analytics = { attempts:0, errors:0, hints:0, startTime:Date.now(), prediction:null, selfAssessment:null };
-let pyodide = null;
-let predictionSubmitted = false;
-let currentPhase = 1;
+// ══════════════════════════════════════
+// STATE
+// ══════════════════════════════════════
+const state = {
+  name: '', age: '', gender: '',
+  preAnswers: {}, postAnswers: {},
+  preScore: 0, postScore: 0,
+  preCurrentQ: 0, postCurrentQ: 0,
+  preSubmitted: {}, postSubmitted: {},
+  prediction: null,
+  attempts: 0, hintsUsed: 0,
+  confidence: 0,
+  solved: false,
+  reflectionHard: '', reflectionDiff: ''
+};
 
-// ── Live preview ──
-function buildCode() {
-  const varName  = document.getElementById('varName').value.trim() || 'total';
-  const varInit  = document.getElementById('varInit').value.trim() || '0';
-  const loopVar  = document.getElementById('loopVar').value;
-  const loopFrom = document.getElementById('loopFrom').value.trim() || '1';
-  const loopTo   = parseInt(document.getElementById('loopTo').value.trim() || '10') + 1;
-  const bodyVar  = document.getElementById('bodyVar').value;
-  const bodyLeft = document.getElementById('bodyLeft').value;
-  const bodyOp   = document.getElementById('bodyOp').value === '×' ? '*' : document.getElementById('bodyOp').value === '−' ? '-' : '+';
-  const bodyRight= document.getElementById('bodyRight').value;
-  const printVar = document.getElementById('printVar').value;
-
-  return `${varName} = ${varInit}\nfor ${loopVar} in range(${loopFrom}, ${loopTo}):\n    ${bodyVar} = ${bodyLeft} ${bodyOp} ${bodyRight}\nprint(${printVar})`;
-}
-
-function updatePreview() {
-  document.getElementById('livePreview').textContent = buildCode();
-}
-
-document.querySelectorAll('.block-input, .block-select').forEach(el => {
-  el.addEventListener('input', updatePreview);
-  el.addEventListener('change', updatePreview);
-});
-updatePreview();
-
-// ── Phases ──
-function setPhase(n) {
-  currentPhase = n;
-  for (let i = 1; i <= 4; i++) {
-    const el = document.getElementById('ps' + i);
-    el.className = 'phase-step' + (i < n ? ' done' : i === n ? ' active' : '');
-    el.querySelector('.dot').textContent = i < n ? '✓' : i;
+// ══════════════════════════════════════
+// QUESTIONS (same for pre + post, different ordering)
+// ══════════════════════════════════════
+const baseQuestions = [
+  {
+    q: "Τι κάνει ένας βρόχος (loop) σε ένα πρόγραμμα;",
+    opts: ["Επαναλαμβάνει μια ομάδα εντολών πολλές φορές", "Αποθηκεύει τιμές σε μια λίστα", "Συγκρίνει δύο αριθμούς", "Εκτυπώνει ένα μήνυμα στην οθόνη"],
+    correct: 0,
+    explain: "Ο βρόχος επαναλαμβάνει (εκτελεί ξανά και ξανά) μια ομάδα εντολών — για παράδειγμα για κάθε αριθμό σε ένα εύρος."
+  },
+  {
+    q: "Τι αποτέλεσμα τυπώνει ο παρακάτω κώδικας;\n\ntotal = 0\nfor i in range(1, 4):\n    total = total + i\nprint(total)",
+    opts: ["3", "6", "10", "4"],
+    correct: 1,
+    explain: "Ο βρόχος προσθέτει: 1+2+3 = 6. Το range(1,4) δίνει τους αριθμούς 1, 2, 3."
+  },
+  {
+    q: "Πόσες φορές θα εκτελεστεί το σώμα του βρόχου:\nfor i in range(5)?",
+    opts: ["4 φορές", "5 φορές", "6 φορές", "1 φορά"],
+    correct: 1,
+    explain: "Το range(5) δίνει 0,1,2,3,4 — δηλαδή ακριβώς 5 τιμές."
+  },
+  {
+    q: "Ποια μεταβλητή χρησιμοποιείται συνήθως για να συσσωρεύει ένα άθροισμα σε έναν βρόχο;",
+    opts: ["counter", "accumulator (συσσωρευτής)", "index", "flag"],
+    correct: 1,
+    explain: "Ο συσσωρευτής (accumulator) είναι η μεταβλητή που ξεκινά από 0 και κάθε φορά αυξάνεται κατά μια τιμή μέσα στον βρόχο."
+  },
+  {
+    q: "Τι σημαίνει η εντολή:\ntotal += i",
+    opts: ["total = total - i", "total = total + i", "total = i + i", "total = i"],
+    correct: 1,
+    explain: "Το += είναι συντομογραφία. Η εντολή total += i ισοδυναμεί με total = total + i."
   }
-  document.getElementById('pv-phase').textContent = n + '/4';
-  document.getElementById('pb-phase').style.width = (n * 25) + '%';
+];
+
+// Για το pre-test: ίδιες ερωτήσεις
+// Για το post-test: ίδιες ερωτήσεις (σε παραγωγικό σύστημα θα ήταν διαφορετικές)
+const preQuestions = baseQuestions;
+const postQuestions = [...baseQuestions]; // same content, shown after learning
+
+// ══════════════════════════════════════
+// HELPERS
+// ══════════════════════════════════════
+function showScreen(id) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  document.getElementById('screen-' + id).classList.add('active');
+  window.scrollTo(0, 0);
 }
 
-// ── Analytics update ──
-function updateViz() {
-  const elapsed = Math.round((Date.now() - analytics.startTime) / 1000);
-  document.getElementById('pv-attempts').textContent = analytics.attempts;
-  document.getElementById('pv-hints').textContent = analytics.hints;
-  document.getElementById('pv-time').textContent = elapsed + 's';
-  document.getElementById('pb-attempts').style.width = Math.min(analytics.attempts * 20, 100) + '%';
-  document.getElementById('pb-hints').style.width = Math.min(analytics.hints * 33, 100) + '%';
-  document.getElementById('pb-time').style.width = Math.min(elapsed * 0.5, 100) + '%';
-  document.getElementById('a-attempts').textContent = analytics.attempts;
-  document.getElementById('a-errors').textContent = analytics.errors;
-  document.getElementById('a-hints').textContent = analytics.hints;
-  document.getElementById('a-time').textContent = elapsed + 's';
-  document.getElementById('attemptCount').textContent = analytics.attempts;
-}
-setInterval(updateViz, 1000);
-
-// ── Prediction ──
-function submitPrediction() {
-  const val = document.getElementById('predictionInput').value.trim();
-  if (!val) { alert('Γράψε μια πρόβλεψη πρώτα!'); return; }
-  analytics.prediction = val;
-  document.getElementById('a-prediction').textContent = val;
-  document.getElementById('predictionBox').classList.add('locked');
-  predictionSubmitted = true;
-  setPhase(2);
+function showToast(msg, duration = 2200) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), duration);
 }
 
-// ── Pyodide ──
-async function initPyodide() {
-  try {
-    pyodide = await loadPyodide();
-    document.getElementById('pyodide-status').textContent = '✅ Python έτοιμο — μπορείς να ξεκινήσεις';
-    document.getElementById('runBtn').disabled = false;
-  } catch(e) {
-    document.getElementById('pyodide-status').textContent = '❌ Σφάλμα φόρτωσης Python';
-  }
-}
-
-// ── Hints ──
-function showHint(level) {
-  for (let i = 1; i <= level; i++) {
-    document.getElementById('hint' + i).classList.add('visible');
-  }
-  analytics.hints = level;
-  updateViz();
-}
-
-// ── Run ──
-async function runCode() {
-  if (!pyodide) return;
-  if (!predictionSubmitted) { alert('Πρώτα καταγράψε την πρόβλεψή σου!'); return; }
-
-  analytics.attempts++;
-  updateViz();
-
-  const code = buildCode();
-  const outputEl = document.getElementById('output');
-
-  try {
-    let captured = '';
-    pyodide.globals.set('print', (...args) => { captured += args.join(' ') + '\n'; });
-    await pyodide.runPythonAsync(code);
-    const result = captured.trim();
-
-    if (result === '55') {
-      outputEl.className = 'success';
-      outputEl.textContent = '✅ Σωστό! Αποτέλεσμα: 55';
-      document.getElementById('userSolution').textContent = code;
-      document.getElementById('solutionCompare').classList.add('visible');
-      document.getElementById('selfAssess').classList.add('visible');
-      const predCorrect = analytics.prediction === '55';
-      document.getElementById('predictionResult').textContent =
-        analytics.prediction + (predCorrect ? ' — σωστά! ✅' : ' — όχι ακριβώς ❌');
-      document.getElementById('metaBox').classList.add('visible');
-      for (let i = 1; i <= 3; i++) document.getElementById('hint' + i).classList.remove('visible');
-      setPhase(4);
-    } else {
-      outputEl.className = 'error';
-      outputEl.textContent = '❌ Αποτέλεσμα: ' + (result || '(χωρίς έξοδο)') + '\n   Δεν είναι 55. Δοκίμασε ξανά.';
-      analytics.errors++;
-      setPhase(3);
-      if (analytics.attempts === 2) showHint(1);
-      else if (analytics.attempts === 3) showHint(2);
-      else if (analytics.attempts >= 4) showHint(3);
-      updateViz();
-    }
-  } catch(err) {
-    outputEl.textContent = '❌ Σφάλμα: ' + err.message;
-    outputEl.className = 'error';
-    analytics.errors++;
-    setPhase(3);
-    if (analytics.attempts >= 2) showHint(Math.min(analytics.attempts - 1, 3));
-    updateViz();
+function updateStepBar(step) {
+  for (let i = 1; i <= 7; i++) {
+    const el = document.getElementById('st' + i);
+    if (!el) continue;
+    el.className = 'step-dot';
+    if (i < step) el.classList.add('done');
+    else if (i === step) el.classList.add('active');
   }
 }
 
-// ── Star rating ──
-function selectStar(n) {
-  analytics.selfAssessment = n;
-  document.querySelectorAll('.star').forEach((s, i) => s.classList.toggle('selected', i < n));
+// ══════════════════════════════════════
+// SCREEN 1: REGISTRATION
+// ══════════════════════════════════════
+let selectedGender = '';
+
+function selectGender(val, btn) {
+  selectedGender = val;
+  document.querySelectorAll('.gender-btn').forEach(b => b.classList.remove('selected'));
+  btn.classList.add('selected');
 }
 
-// ── Save ──
-async function saveReflection() {
-  const text = document.getElementById('metaAnswer').value.trim();
-  if (!text) { alert('Γράψε κάτι πριν συνεχίσεις!'); return; }
-  const log = {
-    timestamp: new Date().toISOString(),
-    exercise: 'sum_1_to_N',
-    studentId: 'student_' + Math.random().toString(36).substr(2, 6),
-    prediction: analytics.prediction,
-    predictionCorrect: analytics.prediction === '55',
-    attempts: analytics.attempts,
-    errors: analytics.errors,
-    hintsUsed: analytics.hints,
-    timeSeconds: Math.round((Date.now() - analytics.startTime) / 1000),
-    selfAssessment: analytics.selfAssessment,
-    reflection: text,
-    code: buildCode()
-  };
+function startRegister() {
+  const name = document.getElementById('reg-name').value.trim();
+  const age = document.getElementById('reg-age').value;
 
-  const btn = document.querySelector('.save-btn');
-  btn.textContent = 'Αποθήκευση...';
-  btn.disabled = true;
+  if (!name) { showToast('✏️ Γράψε το όνομά σου!'); return; }
+  if (!age) { showToast('🎂 Επίλεξε ηλικία!'); return; }
+  if (!selectedGender) { showToast('👤 Επίλεξε φύλο!'); return; }
 
-  try {
-    if (window.saveToFirebase) {
-      const ok = await window.saveToFirebase(log);
-      if (ok) {
-        btn.textContent = '✅ Αποθηκεύτηκε!';
-        btn.style.background = '#15803d';
-        setTimeout(() => { alert('✅ Οι απαντήσεις σου αποθηκεύτηκαν στη βάση δεδομένων!\n\nΣε ευχαριστούμε για τη συμμετοχή σου.'); }, 200);
+  state.name = name;
+  state.age = age;
+  state.gender = selectedGender;
+
+  document.getElementById('header-name-pre').textContent = name;
+
+  showScreen('pretest');
+  renderPreQuestion(0);
+  updateStepBar(2);
+}
+
+// ══════════════════════════════════════
+// QUIZ ENGINE (reusable for pre + post)
+// ══════════════════════════════════════
+function renderQuestion(qIndex, questions, answerMap, submittedMap, areaId, feedbackId, progressId, nextBtnId, prevBtnId) {
+  const q = questions[qIndex];
+  const total = questions.length;
+  const area = document.getElementById(areaId);
+  const fb = document.getElementById(feedbackId);
+
+  document.getElementById(progressId).style.width = ((qIndex / total) * 100) + '%';
+  document.getElementById(prevBtnId).disabled = qIndex === 0;
+
+  fb.className = 'feedback-box';
+  fb.textContent = '';
+
+  const letters = ['Α', 'Β', 'Γ', 'Δ'];
+  const isSubmitted = submittedMap[qIndex] !== undefined;
+  const chosen = answerMap[qIndex];
+
+  let qText = q.q.replace(/\n/g, '<br>');
+
+  area.innerHTML = `
+    <div class="quiz-counter">Ερώτηση ${qIndex + 1} από ${total}</div>
+    <div class="quiz-q">${qText}</div>
+    ${q.opts.map((opt, i) => {
+      let cls = 'option-btn';
+      if (isSubmitted) {
+        if (i === q.correct) cls += ' correct';
+        else if (i === chosen && chosen !== q.correct) cls += ' wrong';
+      } else if (i === chosen) cls += ' selected';
+      return `<button class="${cls}" onclick="selectOpt(${i},${qIndex},'${areaId}','${feedbackId}','${progressId}','${nextBtnId}','${prevBtnId}')" ${isSubmitted ? 'disabled' : ''}>
+        <span class="opt-letter">${letters[i]}</span>${opt}
+      </button>`;
+    }).join('')}
+  `;
+
+  if (isSubmitted) {
+    fb.className = 'feedback-box show ' + (chosen === q.correct ? 'ok' : 'err');
+    fb.textContent = (chosen === q.correct ? '✅ Σωστό! ' : '❌ Λάθος! ') + q.explain;
+  }
+
+  // update next button label
+  const nextBtn = document.getElementById(nextBtnId);
+  if (qIndex === total - 1) {
+    nextBtn.textContent = isSubmitted ? 'Τέλος →' : 'Υποβολή →';
+  } else {
+    nextBtn.textContent = isSubmitted ? 'Επόμενη →' : 'Υποβολή →';
+  }
+}
+
+function selectOpt(optIdx, qIdx, areaId, feedbackId, progressId, nextBtnId, prevBtnId) {
+  // figure out which map to use
+  const isPost = areaId === 'post-question-area';
+  const answerMap = isPost ? state.postAnswers : state.preAnswers;
+  const submittedMap = isPost ? state.postSubmitted : state.preSubmitted;
+  if (submittedMap[qIdx] !== undefined) return;
+  answerMap[qIdx] = optIdx;
+  renderQuestion(qIdx, isPost ? postQuestions : preQuestions, answerMap, submittedMap, areaId, feedbackId, progressId, nextBtnId, prevBtnId);
+}
+
+function quizNav(dir, isPost) {
+  const questions = isPost ? postQuestions : preQuestions;
+  const answerMap = isPost ? state.postAnswers : state.preAnswers;
+  const submittedMap = isPost ? state.postSubmitted : state.preSubmitted;
+  const currentKey = isPost ? 'postCurrentQ' : 'preCurrentQ';
+  const areaId = isPost ? 'post-question-area' : 'pre-question-area';
+  const feedbackId = isPost ? 'post-feedback' : 'pre-feedback';
+  const progressId = isPost ? 'post-progress' : 'pre-progress';
+  const nextBtnId = isPost ? 'post-next-btn' : 'pre-next-btn';
+  const prevBtnId = isPost ? 'post-prev-btn' : 'pre-prev-btn';
+
+  const cur = state[currentKey];
+  const chosen = answerMap[cur];
+
+  if (dir === 1) {
+    // submit if not submitted
+    if (submittedMap[cur] === undefined) {
+      if (chosen === undefined) { showToast('Επίλεξε μια απάντηση!'); return; }
+      submittedMap[cur] = true;
+      // score
+      if (isPost) {
+        if (chosen === questions[cur].correct) state.postScore++;
       } else {
-        btn.textContent = '❌ Σφάλμα — δοκίμασε ξανά';
-        btn.disabled = false;
+        if (chosen === questions[cur].correct) state.preScore++;
       }
-    } else {
-      // Fallback αν Firebase δεν φορτώσει
-      console.log('Analytics:', JSON.stringify(log, null, 2));
-      btn.textContent = '✅ Αποθηκεύτηκε!';
+      renderQuestion(cur, questions, answerMap, submittedMap, areaId, feedbackId, progressId, nextBtnId, prevBtnId);
+      return; // show feedback first
     }
-  } catch(e) {
-    console.error(e);
-    btn.textContent = '❌ Σφάλμα';
-    btn.disabled = false;
+    // advance
+    if (cur < questions.length - 1) {
+      state[currentKey]++;
+      renderQuestion(state[currentKey], questions, answerMap, submittedMap, areaId, feedbackId, progressId, nextBtnId, prevBtnId);
+    } else {
+      // end of test
+      if (isPost) finishPostTest();
+      else finishPreTest();
+    }
+  } else {
+    if (cur > 0) {
+      state[currentKey]--;
+      renderQuestion(state[currentKey], questions, answerMap, submittedMap, areaId, feedbackId, progressId, nextBtnId, prevBtnId);
+    }
   }
 }
 
-document.getElementById('runBtn').addEventListener('click', runCode);
-initPyodide();
+function preNav(dir) { quizNav(dir, false); }
+function postNav(dir) { quizNav(dir, true); }
+
+function renderPreQuestion(idx) {
+  renderQuestion(idx, preQuestions, state.preAnswers, state.preSubmitted,
+    'pre-question-area', 'pre-feedback', 'pre-progress', 'pre-next-btn', 'pre-prev-btn');
+}
+
+function finishPreTest() {
+  showToast('✅ Προ-τεστ ολοκληρώθηκε!');
+  document.getElementById('header-name-ex').textContent = state.name;
+  showScreen('exercise');
+  updateStepBar(3);
+  goPhase(1);
+}
+
+// ══════════════════════════════════════
+// SCREEN 3: EXERCISE PHASES
+// ══════════════════════════════════════
+function goPhase(n) {
+  [1,2,3,4].forEach(i => {
+    document.getElementById('phase-' + i).style.display = (i === n) ? '' : 'none';
+    const tab = document.getElementById('tab-' + i);
+    tab.classList.remove('active', 'done');
+    if (i === n) tab.classList.add('active');
+    else if (i < n) tab.classList.add('done');
+  });
+  window.scrollTo(0, 0);
+  updateStepBar(2 + n); // steps 3-6
+}
+
+// Phase 1
+function savePrediction() {
+  const val = document.getElementById('prediction-input').value.trim();
+  if (!val) { showToast('Γράψε μια πρόβλεψη!'); return; }
+  state.prediction = val;
+  document.getElementById('prediction-recall').textContent = val;
+  showToast('🔮 Πρόβλεψη καταγράφηκε: ' + val);
+  goPhase(2);
+}
+
+// Phase 2 — code builder
+function updatePreview() {
+  const vn = document.getElementById('b-varname').value;
+  const init = document.getElementById('b-init').value;
+  const lv = document.getElementById('b-loopvar').value;
+  const fr = document.getElementById('b-from').value;
+  const to = document.getElementById('b-to').value;
+  const acc = document.getElementById('b-acc').value;
+  const acc2 = document.getElementById('b-acc2').value;
+  const op = document.getElementById('b-op').value;
+  const addend = document.getElementById('b-addend').value;
+  const pr = document.getElementById('b-print').value;
+
+  document.getElementById('code-preview').innerHTML =
+    `<span class="var">${vn}</span> <span class="op">=</span> <span class="num">${init}</span>\n` +
+    `<span class="kw">for</span> <span class="var">${lv}</span> <span class="kw">in</span> <span class="fn">range</span>(<span class="num">${fr}</span>, <span class="num">${to}</span>):\n` +
+    `<span class="indent">  </span><span class="var">${acc}</span> <span class="op">=</span> <span class="var">${acc2}</span> <span class="op">${op}</span> <span class="var">${addend}</span>\n` +
+    `<span class="fn">print</span>(<span class="var">${pr}</span>)`;
+}
+
+function runCode() {
+  state.attempts++;
+  document.getElementById('attempt-count').textContent = state.attempts;
+
+  const vn = document.getElementById('b-varname').value;
+  const init = parseInt(document.getElementById('b-init').value);
+  const lv = document.getElementById('b-loopvar').value;
+  const fr = parseInt(document.getElementById('b-from').value);
+  const toRaw = document.getElementById('b-to').value;
+  const to = toRaw === 'N' ? 11 : parseInt(toRaw);
+  const acc = document.getElementById('b-acc').value;
+  const acc2 = document.getElementById('b-acc2').value;
+  const op = document.getElementById('b-op').value;
+  const addend = document.getElementById('b-addend').value;
+  const pr = document.getElementById('b-print').value;
+
+  // Simulate execution
+  let total = init;
+  for (let i = fr; i < to; i++) {
+    const addVal = addend === 'i' ? i : addend === 'j' ? i : 1;
+    if (op === '+') total += addVal;
+    else if (op === '-') total -= addVal;
+    else if (op === '*') total *= addVal;
+  }
+  // print value
+  const printVal = pr === vn || pr === acc || pr === acc2 ? total : (pr === lv ? (to - 1) : total);
+  const resultBox = document.getElementById('result-box');
+  const isCorrect = printVal === 55;
+
+  resultBox.textContent = `Αποτέλεσμα: ${printVal}`;
+  resultBox.className = 'result-box ' + (isCorrect ? 'success' : 'failure');
+  if (isCorrect) {
+    resultBox.textContent = '🎉 ' + printVal + ' — Σωστό!';
+    state.solved = true;
+    document.getElementById('phase2-next').disabled = false;
+
+    // update student solution display for phase 3
+    const solText = `${vn} = ${init}\nfor ${lv} in range(${fr}, ${to}):\n  ${acc} = ${acc2} ${op} ${addend === 'i' ? lv : addend}\nprint(${pr})`;
+    document.getElementById('student-solution').textContent = solText;
+
+    showToast('🎉 Μπράβο! Βρήκες τη σωστή λύση!');
+  }
+
+  const btn = document.getElementById('phase2-next');
+  if (state.attempts >= 3 && !state.solved) btn.disabled = false; // allow skip after 3 tries
+}
+
+function toggleHint(n) {
+  const el = document.getElementById('hint-' + n);
+  const wasVisible = el.classList.contains('show');
+  if (!wasVisible) state.hintsUsed++;
+  el.classList.toggle('show');
+}
+
+// Phase 3 — confidence
+function rateStar(n) {
+  state.confidence = n;
+  const stars = document.querySelectorAll('#confidence-stars .star');
+  stars.forEach((s, i) => { s.classList.toggle('active', i < n); });
+  const labels = ['', 'Δεν καταλαβαίνω ακόμα...', 'Λίγο σίγουρος/η', 'Μέτρια σίγουρος/η', 'Αρκετά σίγουρος/η', 'Πολύ σίγουρος/η!'];
+  document.getElementById('star-label').textContent = labels[n];
+  document.getElementById('phase3-next').disabled = false;
+}
+
+// Phase 4 — reflection
+function saveReflection() {
+  state.reflectionHard = document.getElementById('reflection-hard').value.trim();
+  state.reflectionDiff = document.getElementById('reflection-diff').value.trim();
+
+  if (!state.reflectionHard && !state.reflectionDiff) {
+    showToast('Γράψε τουλάχιστον μία σκέψη!'); return;
+  }
+
+  // go to post-test
+  document.getElementById('header-name-post').textContent = state.name;
+  showScreen('posttest');
+  renderPostQuestion(0);
+  updateStepBar(7);
+}
+
+function renderPostQuestion(idx) {
+  renderQuestion(idx, postQuestions, state.postAnswers, state.postSubmitted,
+    'post-question-area', 'post-feedback', 'post-progress', 'post-next-btn', 'post-prev-btn');
+}
+
+function finishPostTest() {
+  showScreen('results');
+  renderResults();
+}
+
+// ══════════════════════════════════════
+// RESULTS
+// ══════════════════════════════════════
+function renderResults() {
+  document.getElementById('header-name-res').textContent = state.name;
+
+  const total = preQuestions.length;
+  const preP = Math.round((state.preScore / total) * 100);
+  const postP = Math.round((state.postScore / total) * 100);
+
+  document.getElementById('res-preattempts').textContent = state.attempts;
+  document.getElementById('res-hints').textContent = state.hintsUsed;
+  document.getElementById('res-confidence').textContent = state.confidence ? '★'.repeat(state.confidence) : '—';
+  document.getElementById('res-prediction').textContent = state.prediction ?? '—';
+
+  document.getElementById('pre-score-lbl').textContent = preP + '%';
+  document.getElementById('post-score-lbl').textContent = postP + '%';
+
+  setTimeout(() => {
+    document.getElementById('pre-bar').style.width = preP + '%';
+    document.getElementById('post-bar').style.width = postP + '%';
+  }, 300);
+
+  const diff = postP - preP;
+  let msg = '';
+  if (diff > 20) msg = `🚀 Εκπληκτική πρόοδος! +${diff}% βελτίωση!`;
+  else if (diff > 0) msg = `📈 Καλή πρόοδος! +${diff}% βελτίωση!`;
+  else if (diff === 0) msg = `➡️ Ίδια επίδοση. Συνέχισε την εξάσκηση!`;
+  else msg = `💪 Δοκίμασε ξανά — η εξάσκηση φέρνει αποτελέσματα!`;
+  document.getElementById('improvement-msg').textContent = msg;
+
+  const congrats = postP >= 80 ? `Εξαιρετική δουλειά, ${state.name}! 🌟` :
+    postP >= 60 ? `Καλή προσπάθεια, ${state.name}! Συνέχισε!` :
+    `${state.name}, η εξάσκηση θα σε βοηθήσει να βελτιωθείς!`;
+  document.getElementById('congrats-msg').textContent = congrats;
+
+  document.getElementById('res-hard').textContent = state.reflectionHard || '(δεν συμπληρώθηκε)';
+  document.getElementById('res-diff').textContent = state.reflectionDiff || '(δεν συμπληρώθηκε)';
+}
+
+function downloadResults() {
+  const total = preQuestions.length;
+  const preP  = Math.round((state.preScore  / total) * 100);
+  const postP = Math.round((state.postScore / total) * 100);
+
+  // ── Αποθήκευση στο Firebase ──
+  if (window.saveToFirebase) {
+    window.saveToFirebase({
+      onoma:          state.name,
+      ilikia:         state.age,
+      fylo:           state.gender,
+      provlepsi:      state.prediction ?? '—',
+      apopires:       state.attempts,
+      hints:          state.hintsUsed,
+      autopepithisi:  state.confidence,
+      proTest_score:  state.preScore,
+      proTest_poso:   preP,
+      metaTest_score: state.postScore,
+      metaTest_poso:  postP,
+      veltiwsi:       postP - preP,
+      anastasmos_dysk: state.reflectionHard  || '',
+      anastasmos_all:  state.reflectionDiff  || '',
+    });
+  }
+
+  // ── Τοπική λήψη .txt ──
+  const lines = [
+    'CODESENSE LAB — ΑΠΟΤΕΛΕΣΜΑΤΑ',
+    '================================',
+    `Όνομα: ${state.name}`,
+    `Ηλικία: ${state.age}`,
+    `Φύλο: ${state.gender}`,
+    '',
+    'ΠΡΟ-ΤΕΣΤ',
+    `Σκορ: ${state.preScore}/${total} (${preP}%)`,
+    '',
+    'ΜΕΤΑ-ΤΕΣΤ',
+    `Σκορ: ${state.postScore}/${total} (${postP}%)`,
+    `Βελτίωση: ${postP - preP > 0 ? '+' : ''}${postP - preP}%`,
+    '',
+    'ΑΣΚΗΣΗ',
+    `Πρόβλεψη: ${state.prediction}`,
+    `Προσπάθειες: ${state.attempts}`,
+    `Hints: ${state.hintsUsed}`,
+    `Αυτοπεποίθηση: ${'★'.repeat(state.confidence || 0)}`,
+    '',
+    'ΑΝΑΣΤΟΧΑΣΜΟΣ',
+    `Τι δυσκόλεψε: ${state.reflectionHard}`,
+    `Τι θα άλλαζα: ${state.reflectionDiff}`,
+  ];
+
+  const blob = new Blob([lines.join('\n')], { type: 'text/plain;charset=utf-8' });
+  const url  = URL.createObjectURL(blob);
+  const a    = document.createElement('a');
+  a.href     = url;
+  a.download = `codesense_${state.name.replace(/\s+/g,'_')}.txt`;
+  a.click();
+  URL.revokeObjectURL(url);
+  showToast('📥 Αποθηκεύτηκε τοπικά και στο Firebase!');
+}
+
+// Init
+updatePreview();
 </script>
+
+<!-- ═══════════════════════════════════════════════════
+     FIREBASE — αντικατέστησε το firebaseConfig
+     με τα στοιχεία του δικού σου project
+════════════════════════════════════════════════════ -->
+<script type="module">
+  import { initializeApp }
+    from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+  import { getFirestore, collection, addDoc, serverTimestamp }
+    from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+
+  // ▼▼▼ ΒΑΛΕ ΕΔΩ ΤΟ ΔΙΚΟ ΣΟΥ CONFIG ▼▼▼
+  const firebaseConfig = {
+    apiKey:            "AIzaSyDp28YUPPLExpHnDo7Qt3Oi43V1eQbLVzQ",
+    authDomain:        "codesense-lab.firebaseapp.com",
+    projectId:         "codesense-lab",
+    storageBucket:     "codesense-lab.firebasestorage.app",
+    messagingSenderId: "46638167860",
+    appId:             "1:46638167860:web:c5e61ac5379673bf135761"
+  };
+  // ▲▲▲ ΜΕΧΡΙ ΕΔΩ ▲▲▲
+
+  const app = initializeApp(firebaseConfig);
+  const db  = getFirestore(app);
+
+  window.saveToFirebase = async function(data) {
+    try {
+      const docRef = await addDoc(collection(db, "results"), {
+        ...data,
+        timestamp: serverTimestamp()
+      });
+      console.log("✅ Firebase: αποθηκεύτηκε με ID", docRef.id);
+    } catch (err) {
+      console.error("❌ Firebase σφάλμα:", err);
+      // Η εφαρμογή συνεχίζει κανονικά ακόμα και αν αποτύχει το Firebase
+    }
+  };
+</script>
+
 </body>
 </html>
